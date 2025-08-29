@@ -1,0 +1,228 @@
+{{- if .Values.cronjob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "newman-api-tester.fullname" . }}
+  labels:
+    {{- include "newman-api-tester.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cronjob.schedule | quote }}
+  successfulJobsHistoryLimit: {{ .Values.cronjob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cronjob.failedJobsHistoryLimit }}
+  concurrencyPolicy: {{ .Values.cronjob.concurrencyPolicy }}
+  {{- if .Values.cronjob.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ .Values.cronjob.startingDeadlineSeconds }}
+  {{- end }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "newman-api-tester.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.cronjob.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ .Values.cronjob.activeDeadlineSeconds }}
+      {{- end }}
+      {{- if .Values.cronjob.ttlSecondsAfterFinished }}
+      ttlSecondsAfterFinished: {{ .Values.cronjob.ttlSecondsAfterFinished }}
+      {{- end }}
+      backoffLimit: {{ .Values.cronjob.backoffLimit }}
+      template:
+        metadata:
+          labels:
+            {{- include "newman-api-tester.selectorLabels" . | nindent 12 }}
+            {{- with .Values.podLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          annotations:
+            {{- with .Values.podAnnotations }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "newman-api-tester.serviceAccountName" . }}
+          securityContext:
+            {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          restartPolicy: {{ .Values.cronjob.restartPolicy }}
+          {{- with .Values.initContainers }}
+          initContainers:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: {{ .Chart.Name }}
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  echo "Starting Newman API tests..."
+                  
+                  # Create working directory
+                  mkdir -p /newman/work
+                  cd /newman/work
+                  
+                  # Copy collection from ConfigMap
+                  {{- if .Values.postman.collection.configMap }}
+                  echo "Loading collection from ConfigMap..."
+                  cp /newman/collections/{{ .Values.postman.collection.filename }} ./collection.json
+                  {{- else if .Values.postman.collection.url }}
+                  echo "Downloading collection from URL..."
+                  wget -O collection.json "{{ .Values.postman.collection.url }}"
+                  {{- end }}
+                  
+                  # Copy environment if provided
+                  {{- if .Values.postman.environment.configMap }}
+                  echo "Loading environment from ConfigMap..."
+                  cp /newman/environments/{{ .Values.postman.environment.filename }} ./environment.json
+                  NEWMAN_ENV_ARG="-e environment.json"
+                  {{- else if .Values.postman.environment.url }}
+                  echo "Downloading environment from URL..."
+                  wget -O environment.json "{{ .Values.postman.environment.url }}"
+                  NEWMAN_ENV_ARG="-e environment.json"
+                  {{- else }}
+                  NEWMAN_ENV_ARG=""
+                  {{- end }}
+                  
+                  # Handle test data files (including base64 encoded files)
+                  {{- range .Values.postman.dataFiles }}
+                  echo "Processing data file: {{ .name }}"
+                  {{- if .base64Encoded }}
+                  echo "{{ .content }}" | base64 -d > "{{ .name }}"
+                  {{- else if .configMap }}
+                  cp /newman/data/{{ .name }} ./{{ .name }}
+                  {{- else if .url }}
+                  wget -O "{{ .name }}" "{{ .url }}"
+                  {{- end }}
+                  {{- end }}
+                  
+                  # Handle file uploads for tests (multipart/form-data)
+                  {{- range .Values.postman.uploadFiles }}
+                  echo "Processing upload file: {{ .name }}"
+                  {{- if .base64Encoded }}
+                  echo "{{ .content }}" | base64 -d > "{{ .name }}"
+                  {{- else if .configMap }}
+                  cp /newman/uploads/{{ .name }} ./{{ .name }}
+                  {{- else if .url }}
+                  wget -O "{{ .name }}" "{{ .url }}"
+                  {{- end }}
+                  {{- end }}
+                  
+                  # Build Newman command
+                  NEWMAN_CMD="newman run collection.json ${NEWMAN_ENV_ARG}"
+                  
+                  # Add Newman options
+                  {{- range $key, $value := .Values.newman.options }}
+                  NEWMAN_CMD="${NEWMAN_CMD} --{{ $key }} {{ $value }}"
+                  {{- end }}
+                  
+                  # Add reporters
+                  {{- if .Values.newman.reporters }}
+                  NEWMAN_CMD="${NEWMAN_CMD} --reporters {{ join "," .Values.newman.reporters }}"
+                  {{- end }}
+                  
+                  # Add custom Newman arguments
+                  {{- if .Values.newman.customArgs }}
+                  NEWMAN_CMD="${NEWMAN_CMD} {{ .Values.newman.customArgs }}"
+                  {{- end }}
+                  
+                  # Execute Newman
+                  echo "Executing: ${NEWMAN_CMD}"
+                  eval ${NEWMAN_CMD}
+                  
+                  # Handle test results if needed
+                  {{- if .Values.results.enabled }}
+                  echo "Processing test results..."
+                  {{- if .Values.results.upload.enabled }}
+                  # Upload results to specified endpoint
+                  curl -X POST \
+                    -H "Content-Type: application/json" \
+                    {{- range $key, $value := .Values.results.upload.headers }}
+                    -H "{{ $key }}: {{ $value }}" \
+                    {{- end }}
+                    -d @newman-results.json \
+                    "{{ .Values.results.upload.endpoint }}"
+                  {{- end }}
+                  {{- end }}
+                  
+                  echo "Newman tests completed successfully!"
+              env:
+                {{- range $key, $value := .Values.env }}
+                - name: {{ $key }}
+                  value: {{ $value | quote }}
+                {{- end }}
+                {{- range .Values.envFrom }}
+                - name: {{ .name }}
+                  valueFrom:
+                    {{- toYaml .valueFrom | nindent 20 }}
+                {{- end }}
+              volumeMounts:
+                {{- if .Values.postman.collection.configMap }}
+                - name: collection
+                  mountPath: /newman/collections
+                {{- end }}
+                {{- if .Values.postman.environment.configMap }}
+                - name: environment
+                  mountPath: /newman/environments
+                {{- end }}
+                {{- if .Values.postman.dataFiles }}
+                - name: data
+                  mountPath: /newman/data
+                {{- end }}
+                {{- if .Values.postman.uploadFiles }}
+                - name: uploads
+                  mountPath: /newman/uploads
+                {{- end }}
+                {{- with .Values.volumeMounts }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+          volumes:
+            {{- if .Values.postman.collection.configMap }}
+            - name: collection
+              configMap:
+                name: {{ .Values.postman.collection.configMap }}
+            {{- end }}
+            {{- if .Values.postman.environment.configMap }}
+            - name: environment
+              configMap:
+                name: {{ .Values.postman.environment.configMap }}
+            {{- end }}
+            {{- if .Values.postman.dataFiles }}
+            - name: data
+              configMap:
+                name: {{ include "newman-api-tester.fullname" . }}-data
+            {{- end }}
+            {{- if .Values.postman.uploadFiles }}
+            - name: uploads
+              configMap:
+                name: {{ include "newman-api-tester.fullname" . }}-uploads
+            {{- end }}
+            {{- with .Values.volumes }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

@@ -1,0 +1,221 @@
+# Default values for newman-api-tester
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# -- Override the default name
+nameOverride: ""
+# -- Override the default fullname
+fullnameOverride: ""
+
+# Image configuration
+image:
+  # -- Newman Docker image repository
+  repository: postman/newman
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag (default is chart appVersion)
+  tag: "alpine"
+
+# -- Image pull secrets for private registries
+imagePullSecrets: []
+
+# Service Account configuration
+serviceAccount:
+  # -- Specifies whether a service account should be created
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use
+  name: ""
+
+# CronJob configuration
+cronjob:
+  # -- Enable/disable the CronJob
+  enabled: true
+  # -- Cron schedule for running tests (default: every hour)
+  schedule: "0 * * * *"
+  # -- Number of successful finished jobs to retain
+  successfulJobsHistoryLimit: 3
+  # -- Number of failed finished jobs to retain
+  failedJobsHistoryLimit: 3
+  # -- Specifies how to treat concurrent executions (Allow, Forbid, Replace)
+  concurrencyPolicy: Forbid
+  # -- Optional deadline in seconds for starting the job
+  startingDeadlineSeconds: null
+  # -- Active deadline seconds for the job
+  activeDeadlineSeconds: 3600
+  # -- TTL seconds after job finishes
+  ttlSecondsAfterFinished: 86400
+  # -- Number of retries before marking job as failed
+  backoffLimit: 3
+  # -- Restart policy for the pod
+  restartPolicy: OnFailure
+
+# Postman configuration
+postman:
+  # Collection configuration
+  collection:
+    # -- ConfigMap containing the collection (mutually exclusive with url and inline)
+    configMap: ""
+    # -- URL to download the collection from
+    url: ""
+    # -- Inline collection JSON (will create a ConfigMap)
+    inline: ""
+    # -- Filename for the collection
+    filename: "collection.json"
+  
+  # Environment configuration
+  environment:
+    # -- ConfigMap containing the environment (mutually exclusive with url and inline)
+    configMap: ""
+    # -- URL to download the environment from
+    url: ""
+    # -- Inline environment JSON (will create a ConfigMap)
+    inline: ""
+    # -- Filename for the environment
+    filename: "environment.json"
+  
+  # Data files for data-driven testing
+  dataFiles: []
+  # Example:
+  # - name: "testdata.csv"
+  #   content: |
+  #     username,password
+  #     user1,pass1
+  #     user2,pass2
+  # - name: "testdata.json"
+  #   url: "https://example.com/testdata.json"
+  # - name: "encoded-file.pdf"
+  #   base64Encoded: true
+  #   content: "JVBERi0xLjQKJeLjz9MKNCAwIG9iago..."
+  
+  # Upload files for multipart/form-data requests
+  uploadFiles: []
+  # Example:
+  # - name: "image.png"
+  #   base64Encoded: true
+  #   content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+  # - name: "document.pdf"
+  #   url: "https://example.com/document.pdf"
+  # - name: "config.xml"
+  #   content: |
+  #     <?xml version="1.0"?>
+  #     <config>
+  #       <setting>value</setting>
+  #     </config>
+  # - name: "binary-file.bin"
+  #   binaryContent: "SGVsbG8gV29ybGQh"  # Base64 encoded binary content for ConfigMap
+
+# Newman CLI options
+newman:
+  # -- Newman CLI options (key-value pairs)
+  options: {}
+  # Example options:
+  #   iteration-count: "5"
+  #   delay-request: "500"
+  #   timeout: "180000"
+  #   timeout-request: "60000"
+  #   timeout-script: "60000"
+  #   insecure: "true"
+  #   suppress-exit-code: "true"
+  #   ignore-redirects: "true"
+  #   verbose: "true"
+  
+  # -- Reporters to use (e.g., cli, json, html, junit)
+  reporters:
+    - cli
+    - json
+  
+  # -- Custom Newman arguments
+  customArgs: ""
+
+# Test results configuration
+results:
+  # -- Enable result processing
+  enabled: false
+  # Upload configuration
+  upload:
+    # -- Enable result upload
+    enabled: false
+    # -- Endpoint to upload results to
+    endpoint: ""
+    # -- Headers for the upload request
+    headers: {}
+    # Example:
+    #   Authorization: "Bearer token"
+    #   X-API-Key: "api-key"
+
+# Environment variables
+# -- Environment variables to pass to the container
+env: {}
+# Example:
+#   API_BASE_URL: "https://api.example.com"
+#   API_KEY: "your-api-key"
+
+# -- Environment variables from ConfigMaps/Secrets
+envFrom: []
+# Example:
+# - name: API_SECRET
+#   valueFrom:
+#     secretKeyRef:
+#       name: api-secrets
+#       key: secret-key
+
+# Pod configuration
+# -- Pod labels
+podLabels: {}
+
+# -- Pod annotations
+podAnnotations: {}
+
+# -- Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# -- Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+
+# -- Resource limits and requests
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# -- Node selector for pod assignment
+nodeSelector: {}
+
+# -- Tolerations for pod assignment
+tolerations: []
+
+# -- Affinity for pod assignment
+affinity: {}
+
+# -- Additional volumes
+volumes: []
+# Example:
+# - name: custom-config
+#   configMap:
+#     name: my-config
+
+# -- Additional volume mounts
+volumeMounts: []
+# Example:
+# - name: custom-config
+#   mountPath: /config
+
+# -- Init containers
+initContainers: []
+# Example:
+# - name: wait-for-service
+#   image: busybox:1.35
+#   command: ['sh', '-c', 'until nc -z api-service 80; do echo waiting for api; sleep 2; done']

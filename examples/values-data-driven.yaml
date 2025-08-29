@@ -1,0 +1,98 @@
+# Data-driven testing example - Test with multiple data sets
+cronjob:
+  enabled: true
+  schedule: "0 0 * * *"  # Daily at midnight
+
+postman:
+  collection:
+    inline: |
+      {
+        "info": {
+          "name": "User Authentication Tests",
+          "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+        },
+        "item": [
+          {
+            "name": "Login Test",
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "pm.test('Status code is ' + pm.iterationData.get('expected_status'), function () {",
+                    "    pm.response.to.have.status(parseInt(pm.iterationData.get('expected_status')));",
+                    "});",
+                    "",
+                    "if (pm.response.code === 200) {",
+                    "    pm.test('Response has token', function () {",
+                    "        var jsonData = pm.response.json();",
+                    "        pm.expect(jsonData).to.have.property('token');",
+                    "    });",
+                    "}"
+                  ]
+                }
+              }
+            ],
+            "request": {
+              "method": "POST",
+              "url": "{{api_url}}/auth/login",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\"username\": \"{{username}}\", \"password\": \"{{password}}\"}"
+              }
+            }
+          }
+        ]
+      }
+  
+  environment:
+    inline: |
+      {
+        "name": "Test Environment",
+        "values": [
+          {
+            "key": "api_url",
+            "value": "https://api-test.example.com"
+          }
+        ]
+      }
+  
+  # CSV data file for data-driven testing
+  dataFiles:
+    - name: "test-users.csv"
+      content: |
+        username,password,expected_status,test_description
+        admin,Admin123!,200,Valid admin credentials
+        user1,User123!,200,Valid user credentials
+        test.user@example.com,TestPass123!,200,Valid email login
+        invalid_user,wrong_pass,401,Invalid credentials
+        locked_user,LockedPass123!,403,Locked account
+        "",no_username,400,Missing username
+        no_password,"",400,Missing password
+        sql_injection,"' OR '1'='1",400,SQL injection attempt
+        xss_attempt,"<script>alert('xss')</script>",400,XSS attempt
+
+newman:
+  options:
+    iteration-data: "test-users.csv"
+    delay-request: "500"  # 500ms delay between requests
+    verbose: "true"
+  reporters:
+    - cli
+    - json
+    - junit
+  customArgs: "--reporter-junit-export /tmp/test-results.xml"
+
+results:
+  enabled: true
+  upload:
+    enabled: false  # Set to true if you have a results endpoint
+    endpoint: "https://test-results.example.com/api/upload"
+    headers:
+      X-API-Key: "your-api-key"

@@ -1,0 +1,16 @@
+apiVersion: v2
+name: newman-api-tester
+description: A Helm chart for running periodic API tests using Newman (Postman CLI) on Kubernetes
+type: application
+version: 1.0.0
+appVersion: "latest"
+keywords:
+  - newman
+  - postman
+  - api-testing
+  - cronjob
+  - testing
+home: https://github.com/doubleword/newman-api-tester
+sources:
+  - https://github.com/doubleword/newman-api-tester
+icon: https://www.postman.com/favicon.ico

@@ -1,0 +1,106 @@
+# Example with file uploads - Testing file upload endpoints
+cronjob:
+  enabled: true
+  schedule: "0 */4 * * *"  # Every 4 hours
+
+postman:
+  collection:
+    inline: |
+      {
+        "info": {
+          "name": "File Upload API Tests",
+          "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+        },
+        "item": [
+          {
+            "name": "Upload Profile Picture",
+            "request": {
+              "method": "POST",
+              "url": "{{api_url}}/users/profile/avatar",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{access_token}}"
+                }
+              ],
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "avatar",
+                    "type": "file",
+                    "src": "avatar.jpg"
+                  },
+                  {
+                    "key": "user_id",
+                    "value": "12345",
+                    "type": "text"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Upload Document",
+            "request": {
+              "method": "POST",
+              "url": "{{api_url}}/documents/upload",
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "document",
+                    "type": "file",
+                    "src": "report.pdf"
+                  },
+                  {
+                    "key": "metadata",
+                    "value": "{\"title\":\"Monthly Report\",\"category\":\"finance\"}",
+                    "type": "text"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+  
+  environment:
+    inline: |
+      {
+        "name": "Production",
+        "values": [
+          {
+            "key": "api_url",
+            "value": "https://api.example.com/v1"
+          }
+        ]
+      }
+  
+  # Files to be uploaded during tests
+  uploadFiles:
+    # Small test image (1x1 pixel transparent PNG) - base64 encoded
+    - name: "avatar.jpg"
+      base64Encoded: true
+      content: "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/2wBDAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA8A/9k="
+    
+    # PDF document - base64 encoded
+    - name: "report.pdf"
+      base64Encoded: true
+      content: "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IC9YSGVpZ2h0IDI1MCAvTGVhZGluZyAzMyAvU3RlbVYgNDQgL0ZvbnRCQm94IFsgLTY2NSAtMjEwIDIwMDAgNzI4IF0KPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9NZWRpYUJveCBbMCAwIDYxMiA3OTJdIC9Db3VudCAxIC9LaWRzIFsgMiAwIFIgXSA+PgplbmRvYmoKMTIgMCBvYmoKPDwgL1R5cGUgL0NhdGFsb2cgL1BhZ2VzIDMgMCBSID4+CmVuZG9iagoxIDAgb2JqCjw8IC9Qcm9kdWNlciAoVGVzdCBQREYgR2VuZXJhdG9yKSAvQ3JlYXRpb25EYXRlIChEOjIwMjQwMTAxMDAwMDAwKSA+PgplbmRvYmoKeHJlZgowIDEzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMjY4MyAwMDAwMCBuIAowMDAwMDAwMjM5IDAwMDAwIG4gCjAwMDAwMDI1NDYgMDAwMDAgbiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMjIwIDAwMDAwIG4gCjAwMDAwMDAzNDMgMDAwMDAgbiAKMDAwMDAwMTU5MSAwMDAwMCBuIAowMDAwMDAxNjM0IDAwMDAwIG4gCjAwMDAwMDA0NDUgMDAwMDAgbiAKMDAwMDAwMTU3MSAwMDAwMCBuIAowMDAwMDAxNzIzIDAwMDAwIG4gCjAwMDAwMDI2MjcgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSAxMwovUm9vdCAxMiAwIFIKL0luZm8gMSAwIFIKPj4Kc3RhcnR4cmVmCjI3ODAKJSVFT0Y="
+
+# Environment variables from secrets
+envFrom:
+  - name: ACCESS_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: api-credentials
+        key: token
+
+newman:
+  options:
+    insecure: "true"  # For self-signed certificates
+    timeout-request: "30000"
+  reporters:
+    - cli
+    - json

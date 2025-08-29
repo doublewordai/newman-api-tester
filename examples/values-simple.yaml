@@ -1,0 +1,13 @@
+# Simple example - Test public API every hour
+cronjob:
+  enabled: true
+  schedule: "0 * * * *"  # Every hour
+
+postman:
+  collection:
+    url: "https://raw.githubusercontent.com/postmanlabs/postman-collection/master/examples/sample-collection.json"
+
+newman:
+  options:
+    iteration-count: "1"
+    verbose: "true"
