@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "newman-api-tester.labels" . | nindent 4 }}
 data:
-  {{ .Values.postman.collection.filename | default "collection.json" }}: |
+  {{ .Values.postman.collection.filename }}: |
     {{- .Values.postman.collection.inline | nindent 4 }}
 {{- end }}
 {{- if .Values.postman.environment.inline }}
@@ -19,60 +19,6 @@ metadata:
   labels:
     {{- include "newman-api-tester.labels" . | nindent 4 }}
 data:
-  {{ .Values.postman.environment.filename | default "environment.json" }}: |
+  {{ .Values.postman.environment.filename }}: |
     {{- .Values.postman.environment.inline | nindent 4 }}
-{{- end }}
-{{- if .Values.postman.dataFiles }}
-{{- $hasConfigMapFiles := false }}
-{{- range .Values.postman.dataFiles }}
-  {{- if and (not .base64Encoded) (not .url) }}
-    {{- $hasConfigMapFiles = true }}
-  {{- end }}
-{{- end }}
-{{- if $hasConfigMapFiles }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "newman-api-tester.fullname" . }}-data
-  labels:
-    {{- include "newman-api-tester.labels" . | nindent 4 }}
-data:
-  {{- range .Values.postman.dataFiles }}
-  {{- if and (not .base64Encoded) (not .url) }}
-  {{ .name }}: |
-    {{- .content | nindent 4 }}
-  {{- end }}
-  {{- end }}
-{{- end }}
-{{- end }}
-{{- if .Values.postman.uploadFiles }}
-{{- $hasConfigMapFiles := false }}
-{{- range .Values.postman.uploadFiles }}
-  {{- if and (not .base64Encoded) (not .url) }}
-    {{- $hasConfigMapFiles = true }}
-  {{- end }}
-{{- end }}
-{{- if $hasConfigMapFiles }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ include "newman-api-tester.fullname" . }}-uploads
-  labels:
-    {{- include "newman-api-tester.labels" . | nindent 4 }}
-binaryData:
-  {{- range .Values.postman.uploadFiles }}
-  {{- if and (not .base64Encoded) (not .url) .binaryContent }}
-  {{ .name }}: {{ .binaryContent }}
-  {{- end }}
-  {{- end }}
-data:
-  {{- range .Values.postman.uploadFiles }}
-  {{- if and (not .base64Encoded) (not .url) (not .binaryContent) }}
-  {{ .name }}: |
-    {{- .content | nindent 4 }}
-  {{- end }}
-  {{- end }}
-{{- end }}
 {{- end }}

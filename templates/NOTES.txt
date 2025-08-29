@@ -1,0 +1,45 @@
+╔════════════════════════════════════════════╗
+║     Newman API Tester Deployed!            ║
+╚════════════════════════════════════════════╝
+
+✅ Your Newman API Tester has been successfully deployed!
+
+📝 Quick Commands:
+
+1. Check the CronJob status:
+   kubectl get cronjob -n {{ .Release.Namespace }}
+
+2. View the CronJob details:
+   kubectl describe cronjob {{ include "newman-api-tester.fullname" . }} -n {{ .Release.Namespace }}
+
+3. Manually trigger a test run:
+   kubectl create job --from=cronjob/{{ include "newman-api-tester.fullname" . }} manual-test-$(date +%s) -n {{ .Release.Namespace }}
+
+4. View logs from the last job:
+   kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} --tail=100
+
+5. Watch for job executions:
+   kubectl get jobs -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+
+6. To uninstall:
+   helm uninstall {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+⚙️ Configuration Summary:
+   • CronJob Schedule: {{ .Values.cronjob.schedule }}
+   {{- if .Values.postman.collection.configMap }}
+   • API Collection: ConfigMap ({{ .Values.postman.collection.configMap }})
+   {{- else if .Values.postman.collection.url }}
+   • API Collection: URL ({{ .Values.postman.collection.url }})
+   {{- else if .Values.postman.collection.inline }}
+   • API Collection: Inline
+   {{- end }}
+   {{- if or .Values.postman.environment.configMap .Values.postman.environment.url .Values.postman.environment.inline }}
+   • Environment: Configured
+   {{- end }}
+   {{- if .Values.postman.dataFiles }}
+   • Data Files: {{ len .Values.postman.dataFiles }} file(s)
+   {{- end }}
+
+📊 Next scheduled run will occur based on the cron expression: {{ .Values.cronjob.schedule }}
+
+📚 For more configuration options, see: https://github.com/doublewordai/newman-api-tester

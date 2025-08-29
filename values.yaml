@@ -14,7 +14,7 @@ image:
   # -- Image pull policy
   pullPolicy: IfNotPresent
   # -- Overrides the image tag (default is chart appVersion)
-  tag: "alpine"
+  tag: ""
 
 # -- Image pull secrets for private registries
 imagePullSecrets: []
@@ -44,8 +44,8 @@ cronjob:
   startingDeadlineSeconds: null
   # -- Active deadline seconds for the job
   activeDeadlineSeconds: 3600
-  # -- TTL seconds after job finishes
-  ttlSecondsAfterFinished: 86400
+  # -- TTL seconds after job finishes (default: 1 hour)
+  ttlSecondsAfterFinished: 3600
   # -- Number of retries before marking job as failed
   backoffLimit: 3
   # -- Restart policy for the pod
@@ -75,36 +75,6 @@ postman:
     # -- Filename for the environment
     filename: "environment.json"
   
-  # Data files for data-driven testing
-  dataFiles: []
-  # Example:
-  # - name: "testdata.csv"
-  #   content: |
-  #     username,password
-  #     user1,pass1
-  #     user2,pass2
-  # - name: "testdata.json"
-  #   url: "https://example.com/testdata.json"
-  # - name: "encoded-file.pdf"
-  #   base64Encoded: true
-  #   content: "JVBERi0xLjQKJeLjz9MKNCAwIG9iago..."
-  
-  # Upload files for multipart/form-data requests
-  uploadFiles: []
-  # Example:
-  # - name: "image.png"
-  #   base64Encoded: true
-  #   content: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-  # - name: "document.pdf"
-  #   url: "https://example.com/document.pdf"
-  # - name: "config.xml"
-  #   content: |
-  #     <?xml version="1.0"?>
-  #     <config>
-  #       <setting>value</setting>
-  #     </config>
-  # - name: "binary-file.bin"
-  #   binaryContent: "SGVsbG8gV29ybGQh"  # Base64 encoded binary content for ConfigMap
 
 # Newman CLI options
 newman:
@@ -130,36 +100,35 @@ newman:
   customArgs: ""
 
 # Test results configuration
+# Note: Result post-processing should be handled externally to keep pods testable.
+# Options include:
+# 1. Use Newman reporters (json, junit, html) to save results to persistent volumes
+# 2. Use a sidecar container pattern for result processing  
+# 3. Use Kubernetes Jobs with initContainers for sequential processing
+# 4. Stream results to external systems using Newman's built-in reporters
 results:
-  # -- Enable result processing
+  # -- Enable result processing (reserved for future use)
   enabled: false
-  # Upload configuration
-  upload:
-    # -- Enable result upload
-    enabled: false
-    # -- Endpoint to upload results to
-    endpoint: ""
-    # -- Headers for the upload request
-    headers: {}
-    # Example:
-    #   Authorization: "Bearer token"
-    #   X-API-Key: "api-key"
 
 # Environment variables
-# -- Environment variables to pass to the container
-env: {}
-# Example:
-#   API_BASE_URL: "https://api.example.com"
-#   API_KEY: "your-api-key"
-
-# -- Environment variables from ConfigMaps/Secrets
-envFrom: []
-# Example:
-# - name: API_SECRET
-#   valueFrom:
-#     secretKeyRef:
-#       name: api-secrets
-#       key: secret-key
+# -- Environment variables to pass to the container (standard Kubernetes env format)
+env: []
+# Example - pass environment variables exactly as Kubernetes expects:
+# env:
+#   - name: API_BASE_URL
+#     value: "https://api.example.com"
+#   - name: API_KEY
+#     value: "your-api-key"
+#   - name: DB_PASSWORD
+#     valueFrom:
+#       secretKeyRef:
+#         name: db-secret
+#         key: password
+#   - name: CONFIG_VALUE
+#     valueFrom:
+#       configMapKeyRef:
+#         name: app-config
+#         key: config-value
 
 # Pod configuration
 # -- Pod labels

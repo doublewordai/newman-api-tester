@@ -2,8 +2,8 @@ apiVersion: v2
 name: newman-api-tester
 description: A Helm chart for running periodic API tests using Newman (Postman CLI) on Kubernetes
 type: application
-version: 1.0.0
-appVersion: "latest"
+version: 0.1.0
+appVersion: "6-ubuntu"
 keywords:
   - newman
   - postman

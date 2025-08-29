@@ -1,0 +1,9 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "helm",
+      "package-name": "newman-api-tester",
+      "include-component-in-tag": false
+    }
+  }
+}
